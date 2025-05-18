@@ -11,19 +11,19 @@ Terminaut is a terminal-based, agentic assistant that brings the power of modern
 
 Terminaut's flexibility allows it to handle a wide range of tasks beyond coding. Here are some examples:
 
-- **System Administration**
+- **System Administration**  
   Use Terminaut to manage servers, monitor processes, or automate routine tasks. For example:
   ```bash
   tt --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
   ```
 
-- **Data Analysis**
+- **Data Analysis**  
   Process and analyze data directly from the terminal. For example:
   ```bash
   tt --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
   ```
 
-- **Automation**
+- **Automation**  
   Automate repetitive tasks by defining workflows in the system prompt. For example:
   ```bash
   tt --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
@@ -75,9 +75,9 @@ These are just a few examples. With a custom system prompt, Terminaut can be tai
 
 ---
 
-## Setting Up a 'terminaut' Alias
+## Setting Up a 'tt' Alias
 
-To make it easier to run Terminaut, you can set up a `tt` alias that points to the `main.py` file in the repository. This allows you to invoke the tool with a short and convenient command.
+To make it easier to run Terminaut, set up a `tt` alias that points to the `main.py` file in the repository. This allows you to invoke the tool with a short and convenient command.
 
 ### Steps to Set Up the Alias
 
@@ -124,7 +124,7 @@ To make it easier to run Terminaut, you can set up a `tt` alias that points to t
 export OPENAI_BASE_URL=http://localhost:11434/v1/
 export OPENAI_API_KEY=dummy
 export OPENAI_MODEL=qwen3:14b-q8_0
-python main.py
+tt
 ```
 
 ### With OpenAI
@@ -133,7 +133,7 @@ python main.py
 export OPENAI_BASE_URL=https://api.openai.com/v1/
 export OPENAI_API_KEY=sk-...
 export OPENAI_MODEL=o4-mini
-python main.py
+tt
 ```
 
 ### General
@@ -143,11 +143,17 @@ python main.py
   tt
   ```
 - **Specify a custom system prompt file (optional):**
-**Note:** The system prompt defines the agent's behavior. By customizing it, you can transform Terminaut into a specialized assistant for any task, from coding to system administration or data analysis.
   ```bash
   tt --system-prompt path/to/system-prompt.md
   ```
-  This allows you to customize the agent's behavior by providing a different system prompt.
+  *Note:* The system prompt defines the agent's behavior. By customizing it, you can transform Terminaut into a specialized assistant for any task, from coding to system administration or data analysis.
+  - **Specify a custom system prompt file (optional):**
+    ```bash
+    tt --system-prompt path/to/system-prompt.md
+    ```
+  
+    > **Note:** The system prompt defines the agent's behavior. Craft your system prompts carefully for best results—clear instructions and boundaries are important.  
+    > See the provided [`system-prompt.md`](system-prompt.md) in this repository for a solid example and starting point.
 
 - **Provide an initial user prompt (optional):**
   ```bash
