@@ -14,19 +14,19 @@ Terminaut's flexibility allows it to handle a wide range of tasks beyond coding.
 - **System Administration**
   Use Terminaut to manage servers, monitor processes, or automate routine tasks. For example:
   ```bash
-  ./main.py --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
+  tt --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
   ```
 
 - **Data Analysis**
   Process and analyze data directly from the terminal. For example:
   ```bash
-  ./main.py --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
+  tt --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
   ```
 
 - **Automation**
   Automate repetitive tasks by defining workflows in the system prompt. For example:
   ```bash
-  ./main.py --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
+  tt --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
   ```
 
 These are just a few examples. With a custom system prompt, Terminaut can be tailored to fit virtually any workflow.
@@ -75,16 +75,44 @@ These are just a few examples. With a custom system prompt, Terminaut can be tai
 
 ---
 
-### Dependency Management
+## Setting Up a 'terminaut' Alias
 
-Terminaut uses [uv](https://github.com/astral-sh/uv) to automatically manage dependencies. When you run the `main.py` script, `uv` will ensure that all required dependencies (e.g., `openai`, `colorama`) are installed in an isolated environment. This eliminates the need for manual dependency installation.
+To make it easier to run Terminaut, you can set up a `tt` alias that points to the `main.py` file in the repository. This allows you to invoke the tool with a short and convenient command.
 
-If you don't already have `uv` installed, you can install it with:
-```bash
-pip install uv
-```
+### Steps to Set Up the Alias
 
-Once installed, you can run `./main.py` directly, and `uv` will automatically handle dependencies in an isolated environment.
+1. **Ensure the `main.py` file is executable:**
+   ```bash
+   chmod +x /path/to/terminaut/main.py
+   ```
+
+2. **Create the alias:**
+   Add the following line to your shell configuration file (e.g., `~/.bashrc`, `~/.zshrc`, or `~/.bash_profile`):
+   ```bash
+   alias tt='/path/to/terminaut/main.py'
+   ```
+
+   Replace `/path/to/terminaut/main.py` with the absolute path to the `main.py` file in your Terminaut repository.
+
+3. **Reload your shell configuration:**
+   After editing your shell configuration file, reload it to apply the changes:
+   ```bash
+   source ~/.bashrc  # For Bash
+   source ~/.zshrc   # For Zsh
+   ```
+
+4. **Test the alias:**
+   Run the following command to ensure the alias works:
+   ```bash
+   tt --help
+   ```
+
+   If everything is set up correctly, you should see the help output for Terminaut.
+
+### Notes
+
+- The alias will only work in the shell where it is configured. To make it available in all sessions, ensure you add it to your shell's configuration file.
+- If you move the Terminaut repository to a different location, update the alias in your shell configuration file to reflect the new path.
 
 ---
 
@@ -112,22 +140,22 @@ python main.py
 
 - **Start the agent:**
   ```bash
-  python main.py
+  tt
   ```
 - **Specify a custom system prompt file (optional):**
 **Note:** The system prompt defines the agent's behavior. By customizing it, you can transform Terminaut into a specialized assistant for any task, from coding to system administration or data analysis.
   ```bash
-  ./main.py --system-prompt path/to/system-prompt.md
+  tt --system-prompt path/to/system-prompt.md
   ```
   This allows you to customize the agent's behavior by providing a different system prompt.
 
 - **Provide an initial user prompt (optional):**
   ```bash
-  ./main.py --first-prompt "List all Python files in this directory."
+  tt --first-prompt "List all Python files in this directory."
   ```
   Alternatively, you can provide a file containing the first user prompt:
   ```bash
-  ./main.py --first-prompt path/to/first-prompt.txt
+  tt --first-prompt path/to/first-prompt.txt
   ```
   If a file path is provided, the contents of the file will be used as the first user prompt.
 
@@ -230,7 +258,7 @@ EXIT CODE: 0
 
 ### Using `--system-prompt` and `--first-prompt`
 ```
-$ ./main.py --system-prompt custom-system-prompt.md --first-prompt "List all Python files in this directory."
+$ tt --system-prompt custom-system-prompt.md --first-prompt "List all Python files in this directory."
 [info] === Terminaut: LLM Agent Loop with OpenAI Chat Completions API and Bash Tool ===
 [info] Type 'exit' to end the conversation.
 [agent] {
