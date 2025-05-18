@@ -55,10 +55,9 @@ def main():
         output("info", "Type '/exit' to end the conversation.")
         llm = LLM(
             model=os.environ.get("OPENAI_MODEL", "gpt-4o"),
-            base_url=os.environ.get("OPENAI_BASE_URL")
+            base_url=os.environ.get("OPENAI_BASE_URL"),
+            system_prompt=system_prompt
         )
-        if system_prompt:
-            llm.system_prompt = system_prompt
         if first_prompt:
             loop(llm, initial_prompt=first_prompt)
         else:

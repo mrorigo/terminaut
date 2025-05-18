@@ -10,18 +10,21 @@ from .tools import bash_function
 HISTORY_LIMIT = int(os.environ.get("HISTORY_LIMIT", "20"))
 
 class LLM:
-    def __init__(self, model, base_url=None):
+    def __init__(self, model, base_url=None, system_prompt=None):
         if "OPENAI_API_KEY" not in os.environ:
             raise ValueError("OPENAI_API_KEY environment variable not found.")
         self.model = model
         self.messages = []
-        # Load system prompt from file
-        try:
-            with open("system-prompt.md", "r", encoding="utf-8") as f:
-                self.system_prompt = f.read()
-        except Exception as e:
-            output("error", f"Failed to read system prompt: {e}")
-            self.system_prompt = "You are a helpful AI assistant."
+        # Use provided system prompt, or load from file, or fallback to default
+        if system_prompt is not None:
+            self.system_prompt = system_prompt
+        else:
+            try:
+                with open("system-prompt.md", "r", encoding="utf-8") as f:
+                    self.system_prompt = f.read()
+            except Exception as e:
+                output("error", f"Failed to read system prompt: {e}")
+                self.system_prompt = "You are a helpful AI assistant."
         self.functions = [bash_function]
         self.client = openai.OpenAI(
             api_key=os.environ["OPENAI_API_KEY"],
