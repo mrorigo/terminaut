@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# apply_patch: Apply a unified diff patch to the working directory.
+# Usage:
+#   apply_patch < patchfile
+#   apply_patch patchfile
+
+set -euo pipefail
+
+show_help() {
+  echo "Usage: apply_patch [patchfile]"
+  echo "Apply a unified diff patch to the current directory."
+  echo "If no patchfile is given, reads patch from stdin."
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+  show_help
+  exit 0
+fi
+
+if [[ $# -gt 1 ]]; then
+  show_help
+  exit 1
+fi
+
+PATCHFILE=""
+if [[ $# -eq 1 ]]; then
+  PATCHFILE="$1"
+  if [[ ! -f "$PATCHFILE" ]]; then
+    echo "[error] Patch file not found: $PATCHFILE" >&2
+    exit 2
+  fi
+  PATCH_INPUT="cat \"$PATCHFILE\""
+else
+  PATCH_INPUT="cat"
+fi
+
+# Use --batch to avoid interactive prompts, --forward to skip already-applied hunks, and --strip=0 for relative paths.
+# Print output for agent logging.
+set +e
+eval $PATCH_INPUT | patch --batch --forward --strip=0
+STATUS=$?
+set -e
+
+if [[ $STATUS -eq 0 ]]; then
+  echo "[apply_patch] Patch applied successfully."
+else
+  echo "[error] Patch application failed with exit code $STATUS." >&2
+  exit $STATUS
+fi
