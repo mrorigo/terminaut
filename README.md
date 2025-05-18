@@ -1,3 +1,4 @@
+![Terminaut Logo](./logo.png)
 # Terminaut
 
 **Your terminal, your mission.**
@@ -11,19 +12,19 @@ Terminaut is a terminal-based, agentic assistant that brings the power of modern
 
 Terminaut's flexibility allows it to handle a wide range of tasks beyond coding. Here are some examples:
 
-- **System Administration**  
+- **System Administration**
   Use Terminaut to manage servers, monitor processes, or automate routine tasks. For example:
   ```bash
   tt --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
   ```
 
-- **Data Analysis**  
+- **Data Analysis**
   Process and analyze data directly from the terminal. For example:
   ```bash
   tt --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
   ```
 
-- **Automation**  
+- **Automation**
   Automate repetitive tasks by defining workflows in the system prompt. For example:
   ```bash
   tt --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
@@ -151,8 +152,8 @@ tt
     ```bash
     tt --system-prompt path/to/system-prompt.md
     ```
-  
-    > **Note:** The system prompt defines the agent's behavior. Craft your system prompts carefully for best results—clear instructions and boundaries are important.  
+
+    > **Note:** The system prompt defines the agent's behavior. Craft your system prompts carefully for best results—clear instructions and boundaries are important.
     > See the provided [`system-prompt.md`](system-prompt.md) in this repository for a solid example and starting point.
 
 - **Provide an initial user prompt (optional):**
