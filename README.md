@@ -14,19 +14,19 @@ Terminaut's flexibility allows it to handle a wide range of tasks beyond coding.
 - **System Administration**
   Use Terminaut to manage servers, monitor processes, or automate routine tasks. For example:
   ```bash
-  python main.py --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
+  ./main.py --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
   ```
 
 - **Data Analysis**
   Process and analyze data directly from the terminal. For example:
   ```bash
-  python main.py --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
+  ./main.py --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
   ```
 
 - **Automation**
   Automate repetitive tasks by defining workflows in the system prompt. For example:
   ```bash
-  python main.py --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
+  ./main.py --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
   ```
 
 These are just a few examples. With a custom system prompt, Terminaut can be tailored to fit virtually any workflow.
@@ -84,6 +84,8 @@ If you don't already have `uv` installed, you can install it with:
 pip install uv
 ```
 
+Once installed, you can run `./main.py` directly, and `uv` will automatically handle dependencies in an isolated environment.
+
 ---
 
 ## Usage
@@ -115,17 +117,17 @@ python main.py
 - **Specify a custom system prompt file (optional):**
 **Note:** The system prompt defines the agent's behavior. By customizing it, you can transform Terminaut into a specialized assistant for any task, from coding to system administration or data analysis.
   ```bash
-  python main.py --system-prompt path/to/system-prompt.md
+  ./main.py --system-prompt path/to/system-prompt.md
   ```
   This allows you to customize the agent's behavior by providing a different system prompt.
 
 - **Provide an initial user prompt (optional):**
   ```bash
-  python main.py --first-prompt "List all Python files in this directory."
+  ./main.py --first-prompt "List all Python files in this directory."
   ```
   Alternatively, you can provide a file containing the first user prompt:
   ```bash
-  python main.py --first-prompt path/to/first-prompt.txt
+  ./main.py --first-prompt path/to/first-prompt.txt
   ```
   If a file path is provided, the contents of the file will be used as the first user prompt.
 
@@ -228,7 +230,7 @@ EXIT CODE: 0
 
 ### Using `--system-prompt` and `--first-prompt`
 ```
-$ python main.py --system-prompt custom-system-prompt.md --first-prompt "List all Python files in this directory."
+$ ./main.py --system-prompt custom-system-prompt.md --first-prompt "List all Python files in this directory."
 [info] === Terminaut: LLM Agent Loop with OpenAI Chat Completions API and Bash Tool ===
 [info] Type 'exit' to end the conversation.
 [agent] {
