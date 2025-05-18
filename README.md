@@ -1,38 +1,61 @@
 # Terminaut
 
-**Explore your codebase. Command with confidence.**
+**Your terminal, your mission.**
 
-Terminaut is a terminal-based, agentic coding assistant that brings the power of modern LLMs to your local development workflow. It enables natural language interaction with your codebase, safe shell command execution, patch application, and more—all from your terminal.
+Terminaut is a terminal-based, agentic assistant that brings the power of modern LLMs to your local workflow. While it excels as a coding assistant, Terminaut is much more than that. By customizing the system prompt, you can transform it into a versatile agent for system administration, data analysis, automation, or any task that can be accomplished with Bash commands. Terminaut adapts to your needs, making it the ultimate tool for your terminal.
 
 ---
 
 ## Features
+## Examples of Use Cases
 
-- **Agentic CLI Coding Assistant**  
-  Terminaut wraps OpenAI-compatible models (OpenAI, Ollama, OpenRouter, etc.) to provide a conversational, agentic interface for coding tasks.
+Terminaut's flexibility allows it to handle a wide range of tasks beyond coding. Here are some examples:
 
-- **Tool Calling & Shell Integration**  
+- **System Administration**
+  Use Terminaut to manage servers, monitor processes, or automate routine tasks. For example:
+  ```bash
+  python main.py --system-prompt sysadmin-prompt.md --first-prompt "Check disk usage and list the top 5 largest files."
+  ```
+
+- **Data Analysis**
+  Process and analyze data directly from the terminal. For example:
+  ```bash
+  python main.py --system-prompt data-analysis-prompt.md --first-prompt "Summarize the contents of data.csv and calculate the average of column B."
+  ```
+
+- **Automation**
+  Automate repetitive tasks by defining workflows in the system prompt. For example:
+  ```bash
+  python main.py --system-prompt automation-prompt.md --first-prompt "Backup all .txt files in this directory to /backup."
+  ```
+
+These are just a few examples. With a custom system prompt, Terminaut can be tailored to fit virtually any workflow.
+
+- **Agentic CLI Assistant**
+  Terminaut wraps OpenAI-compatible models (OpenAI, Ollama, OpenRouter, etc.) to provide a conversational, agentic interface for any task. Whether you're coding, managing systems, or automating workflows, Terminaut adapts to your needs.
+
+- **Tool Calling & Shell Integration**
   The agent can call shell commands, read files, and apply patches using a robust tool-calling interface.
 
-- **Patch Application**  
+- **Patch Application**
   Unified diff patches are applied via a standalone `apply_patch` script, ensuring safe and auditable code changes.
 
-- **User Approval for Shell Commands**  
+- **User Approval for Shell Commands**
   All shell commands require explicit user approval before execution, keeping you in control.
 
-- **Robust Tool Call Parsing**  
+- **Robust Tool Call Parsing**
   Terminaut detects tool calls in both structured API responses and as JSON/code blocks in LLM text, tolerant to various code block guards and formatting.
 
-- **History Management**  
+- **History Management**
   Configurable message history limit (default: 20) to keep context efficient and avoid runaway context windows.
 
-- **Tagged Output Logging**  
+- **Tagged Output Logging**
   All output is tagged by context (agent, user_input, bash_command, etc.) for easy parsing, UI integration, or telemetry.
 
-- **Provider Agnostic**  
+- **Provider Agnostic**
   Works with OpenAI, Ollama, OpenRouter, and any OpenAI-compatible API.
 
-- **Extensible Architecture**  
+- **Extensible Architecture**
   Modular Python package structure for easy extension and maintenance.
 
 ---
@@ -41,23 +64,25 @@ Terminaut is a terminal-based, agentic coding assistant that brings the power of
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/your-org/terminaut.git
+   git clone https://github.com/mrorigo/terminaut.git
    cd terminaut
    ```
 
-2. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
-   Or use [uv](https://github.com/astral-sh/uv) for fast installs:
-   ```bash
-   uv pip install -r requirements.txt
-   ```
-
-3. **Make sure `apply_patch` is executable:**
+2. **Make sure `apply_patch` is executable:**
    ```bash
    chmod +x apply_patch
    ```
+
+---
+
+### Dependency Management
+
+Terminaut uses [uv](https://github.com/astral-sh/uv) to automatically manage dependencies. When you run the `main.py` script, `uv` will ensure that all required dependencies (e.g., `openai`, `colorama`) are installed in an isolated environment. This eliminates the need for manual dependency installation.
+
+If you don't already have `uv` installed, you can install it with:
+```bash
+pip install uv
+```
 
 ---
 
@@ -87,6 +112,23 @@ python main.py
   ```bash
   python main.py
   ```
+- **Specify a custom system prompt file (optional):**
+**Note:** The system prompt defines the agent's behavior. By customizing it, you can transform Terminaut into a specialized assistant for any task, from coding to system administration or data analysis.
+  ```bash
+  python main.py --system-prompt path/to/system-prompt.md
+  ```
+  This allows you to customize the agent's behavior by providing a different system prompt.
+
+- **Provide an initial user prompt (optional):**
+  ```bash
+  python main.py --first-prompt "List all Python files in this directory."
+  ```
+  Alternatively, you can provide a file containing the first user prompt:
+  ```bash
+  python main.py --first-prompt path/to/first-prompt.txt
+  ```
+  If a file path is provided, the contents of the file will be used as the first user prompt.
+
 - **Type your requests at the prompt.**
 - **Approve or deny shell commands as prompted.**
 - **Type `exit` or `quit` to leave.**
@@ -95,18 +137,20 @@ python main.py
 
 ## Configuration
 
-| Variable           | Description                                      | Default         |
+| Variable/Option    | Description                                      | Default         |
 |--------------------|--------------------------------------------------|-----------------|
 | `OPENAI_BASE_URL`  | Base URL for OpenAI-compatible API               | (required)      |
 | `OPENAI_API_KEY`   | API key for the LLM provider                     | (required)      |
 | `OPENAI_MODEL`     | Model name (e.g., `gpt-4o`, `qwen3:14b-q8_0`)    | `gpt-4o`        |
 | `HISTORY_LIMIT`    | Max messages to keep in context                  | `20`            |
+| `--system-prompt`  | Path to a custom system prompt file              | Default system prompt |
+| `--first-prompt`   | Initial user prompt (string or file path)        | None            |
 
 ---
 
 ## How It Works
 
-1. **Conversational Loop:**  
+1. **Conversational Loop:**
    - User enters a prompt.
    - LLM responds, possibly with tool calls (e.g., shell commands).
    - Tool calls are parsed from both structured API responses and code/text blocks.
@@ -114,15 +158,15 @@ python main.py
    - Tool results are fed back to the LLM for further reasoning.
    - The loop continues until the task is complete.
 
-2. **Patch Application:**  
+2. **Patch Application:**
    - The agent emits unified diff patches.
    - Patches are applied via the `apply_patch` script, which is always invoked with an absolute path for reliability.
 
-3. **History Management:**  
+3. **History Management:**
    - Only the most recent N messages are kept in context (configurable).
    - The system prompt is always preserved.
 
-4. **Output Tagging:**  
+4. **Output Tagging:**
    - All output is tagged for easy parsing and UI integration.
 
 ---
@@ -149,6 +193,7 @@ system-prompt.md # System prompt for the agent
 
 ## Example Session
 
+### Using Default Options
 ```
 [info] === Terminaut: LLM Agent Loop with OpenAI Chat Completions API and Bash Tool ===
 [info] Type 'exit' to end the conversation.
@@ -181,23 +226,55 @@ EXIT CODE: 0
 [agent] The Python files in this directory are: main.py, cli.py, llm.py, tools.py, input.py, output.py.
 ```
 
+### Using `--system-prompt` and `--first-prompt`
+```
+$ python main.py --system-prompt custom-system-prompt.md --first-prompt "List all Python files in this directory."
+[info] === Terminaut: LLM Agent Loop with OpenAI Chat Completions API and Bash Tool ===
+[info] Type 'exit' to end the conversation.
+[agent] {
+  "id": "tool_call_1",
+  "type": "function",
+  "function": {
+    "name": "bash",
+    "arguments": "{\"command\": \"ls *.py\"}"
+  }
+}
+[bash_command] Approval required for bash command: ls *.py
+[approval_prompt] Approve execution of: ls *.py? [y/N]:
+Approve execution of this bash command? [y/N]: y
+[approval_response] y
+[bash_command] User approved execution of: ls *.py
+[bash_output] STDOUT:
+main.py
+cli.py
+llm.py
+tools.py
+input.py
+output.py
+
+STDERR:
+
+EXIT CODE: 0
+[agent] The Python files in this directory are: main.py, cli.py, llm.py, tools.py, input.py, output.py.
+```
+
 ---
 
 ## Troubleshooting & FAQ
 
-- **Q: `apply_patch` not found?**  
+- **Q: `apply_patch` not found?**
   A: Ensure `apply_patch` is present, executable, and in the repo root. The agent will use its absolute path.
 
-- **Q: How do I use a different model/provider?**  
+- **Q: How do I use a different model/provider?**
   A: Set `OPENAI_BASE_URL`, `OPENAI_API_KEY`, and `OPENAI_MODEL` as shown above.
 
-- **Q: Can I add new tools?**  
+- **Q: Can I add new tools?**
   A: Yes! Add your tool in `tools.py` and register it in `llm.py`.
 
-- **Q: Why does the agent ask for approval for every shell command?**  
+- **Q: Why does the agent ask for approval for every shell command?**
   A: For safety. You can always deny commands you don't trust.
 
-- **Q: How do I change the history limit?**  
+- **Q: How do I change the history limit?**
   A: Set the `HISTORY_LIMIT` environment variable.
 
 ---
