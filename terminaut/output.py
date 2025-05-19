@@ -15,7 +15,7 @@ except ImportError:
     Fore = DummyFore()
     Style = Dummy()
 
-init(autoreset=True)
+init()
 
 TAG_STYLES = {
     "info":      (Fore.CYAN + Style.BRIGHT, "ℹ️ "),
@@ -36,12 +36,12 @@ TAG_STYLES = {
 def output(tag: str, message: str, streaming: bool = False):
     """Central output handler for all script output, with color and emoji."""
     style, emoji = TAG_STYLES.get(tag, TAG_STYLES["default"])
-    
+
     # Handle streaming mode
     if tag == "stream" or streaming:
         print(f"{style}{message}{Style.RESET_ALL}", end="", flush=True)
         return
-    
+
     # Standard multi-line messages: prefix only the first line with emoji, indent others
     lines = message.splitlines() or [""]
     if lines:
