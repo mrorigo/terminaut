@@ -8,14 +8,37 @@ def loop(llm, initial_prompt=None):
     msg = [{"role": "user", "content": initial_prompt}] if initial_prompt else user_input()
     while True:
         output_text, tool_calls = llm(msg)
+        
+        # Output any message from the assistant when present
         if output_text.strip():
             output("agent", output_text)
+            
+        # Process tool calls regardless of whether there's output text
         # If there are tool calls, handle them and immediately call LLM again with the tool result(s)
         while tool_calls:
-            msg = [handle_tool_call(tc) for tc in tool_calls]
-            output_text, tool_calls = llm(msg)
-            if output_text.strip():
-                output("agent", output_text)
+            try:
+                # Handle each tool call and collect responses
+                msg = []
+                for tc in tool_calls:
+                    if tc is not None:
+                        result = handle_tool_call(tc)
+                        if result is not None:
+                            msg.append(result)
+                
+                if not msg:  # If no valid tool responses, exit the loop
+                    output("error", "No valid tool responses, stopping tool call loop")
+                    tool_calls = []
+                    continue
+                    
+                output_text, new_tool_calls = llm(msg)
+                tool_calls = new_tool_calls  # Update tool_calls for next loop iteration
+                
+                if output_text and output_text.strip():
+                    output("agent", output_text)
+            except Exception as e:
+                output("error", f"Error in tool call loop: {str(e)}")
+                tool_calls = []  # Stop the loop on error
+                
         # Only prompt user when there are no tool calls left
         msg = user_input()
 

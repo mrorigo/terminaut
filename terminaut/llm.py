@@ -19,8 +19,11 @@ class LLM:
         if system_prompt is not None:
             self.system_prompt = system_prompt
         else:
+            local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "system-prompt.md")
+            local_path = os.path.abspath(local_path)
+
             try:
-                with open("system-prompt.md", "r", encoding="utf-8") as f:
+                with open(local_path, "r", encoding="utf-8") as f:
                     self.system_prompt = f.read()
             except Exception as e:
                 output("error", f"Failed to read system prompt: {e}")
@@ -51,14 +54,35 @@ class LLM:
         if not any(m["role"] == "system" for m in self.messages):
             messages.append({"role": "system", "content": self.system_prompt})
         messages.extend(self.messages)
-        response = self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            functions=self.functions,
-            function_call="auto",
-            max_tokens=2000,
-        )
-        message = response.choices[0].message
+        try:
+            tools = [{"type": "function", "function": func} for func in self.functions]
+
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools,
+                tool_choice="auto",
+                max_tokens=2000,
+            )
+            # Log the raw response for debugging
+            # output("info", f"Raw OpenAI response: {repr(response)} (type: {type(response)})")
+
+            # Safety check for response structure
+            if not hasattr(response, 'choices') or len(response.choices) == 0:
+                output("error", "Invalid OpenAI response: missing or empty choices")
+                return "I received an error from the server. Please try again.", []
+
+            message = response.choices[0].message
+        except Exception as e:
+            output("error", f"OpenAI API error: {str(e)}")
+
+            # Print the full exception details for debugging
+            import traceback
+            output("error", f"Full error details: {traceback.format_exc()}")
+
+            return f"Error calling OpenAI API: {str(e)}", []
+
+        # Initialize variables for processing the response
         output_text = ""
         tool_calls = []
 
@@ -171,15 +195,16 @@ class LLM:
                         continue
             return tool_calls
 
+        # --- 1. Collect all tool calls from all sources ---
+        tool_calls = []
         extracted_tool_calls = []
+
+        # (A) Content-inlined tool calls (code blocks, JSON, etc.)
         if message.content:
             output_text += message.content
-            # Try to extract tool calls from text if present
             extracted_tool_calls = extract_tool_calls_from_text(message.content)
             for tc in extracted_tool_calls:
-                # Generate a unique id for each tool call
                 tool_call_id = f"manual_{uuid.uuid4().hex[:8]}"
-                # Arguments may be a dict or a JSON string
                 args = tc["arguments"]
                 if isinstance(args, str):
                     try:
@@ -192,7 +217,8 @@ class LLM:
                     "input": args,
                     "from_text_block": True
                 })
-        # Also handle structured tool_calls
+
+        # (B) Structured tool_calls (OpenAI v2+)
         if hasattr(message, "tool_calls") and message.tool_calls:
             for tc in message.tool_calls:
                 tool_calls.append({
@@ -201,29 +227,71 @@ class LLM:
                     "input": tc.function.arguments and json.loads(tc.function.arguments),
                     "from_text_block": False
                 })
-        # Save assistant message
-        if extracted_tool_calls:
-            # If tool calls were extracted from text, log them as tool_calls with empty content
-            self.messages.append({
+
+        # (C) Single function_call (OpenAI v1)
+        if hasattr(message, "function_call") and message.function_call:
+            fc = message.function_call
+            # Use a unique id for this function call
+            tool_call_id = f"function_{uuid.uuid4().hex[:8]}"
+            args = fc.arguments
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    args = {}
+            tool_calls.append({
+                "id": tool_call_id,
+                "name": fc.name,
+                "input": args,
+                "from_text_block": False
+            })
+
+        # --- 2. Log assistant message with correct OpenAI tool_calls structure ---
+        # If any tool calls were extracted from content, log only those as tool_calls
+        if tool_calls and any(tc is not None and isinstance(tc, dict) and tc.get("from_text_block") for tc in tool_calls):
+            tool_calls_for_message = [
+                {
+                    "id": tc.get("id", f"unknown_{uuid.uuid4().hex[:8]}"),
+                    "type": "function",
+                    "function": {
+                        "name": tc.get("name", "unknown"),
+                        "arguments": json.dumps(tc.get("input", {}))
+                    }
+                }
+                for tc in tool_calls if tc is not None and isinstance(tc, dict) and tc.get("from_text_block")
+            ]
+            tool_message = {
                 "role": "assistant",
                 "content": "",
-                "tool_calls": [
-                    {
-                        "id": tc["id"],
-                        "type": "function",
-                        "function": {
-                            "name": tc["name"],
-                            "arguments": json.dumps(tc["input"])
-                        }
+                "tool_calls": tool_calls_for_message
+            }
+            self.messages.append(tool_message)
+        # Otherwise, if there are structured tool_calls or function_call, log those
+        elif tool_calls:
+            tool_calls_for_message = [
+                {
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {
+                        "name": tc["name"],
+                        "arguments": json.dumps(tc["input"])
                     }
-                    for tc in tool_calls if tc.get("from_text_block")
-                ]
-            })
+                }
+                for tc in tool_calls
+            ]
+            tool_message = {
+                "role": "assistant",
+                "content": "",
+                "tool_calls": tool_calls_for_message
+            }
+            # print("[DEBUG] Assistant message with tool_calls to be appended:", tool_message)
+            self.messages.append(tool_message)
         else:
-            # Otherwise, log as before (structured tool_calls or plain content)
-            self.messages.append({
+            # No tool calls, just log the content
+            tool_message = {
                 "role": "assistant",
                 "content": message.content if message.content else "",
-                "tool_calls": getattr(message, "tool_calls", None)
-            })
+            }
+            self.messages.append(tool_message)
+
         return output_text, tool_calls
