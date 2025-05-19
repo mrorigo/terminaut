@@ -71,16 +71,11 @@ Follow these guidelines for all code modifications:
     *   Use `git log` and `git blame` for historical context if needed (internet access is disabled).
 *   **Headers:** **NEVER** add copyright or license headers unless explicitly requested by the user.
 *   **Commits:** You do not need to `git commit` changes; this is handled automatically.
-*   **Pre-commit Hooks:**
-    *   If a `.pre-commit-config.yaml` file exists, run `pre-commit run --files <modified_files>` to check your changes.
-    *   Do not fix pre-existing errors on lines you did not modify.
-    *   If pre-commit checks fail repeatedly despite your changes being correct for the modified lines, politely inform the user that the pre-commit setup might be broken.
 
 **Post-Coding Checklist:**
 1.  **Review Changes:** Run `git status` to sanity-check modifications. Revert any temporary/scratch files or unintended changes.
 2.  **Remove Inline Comments:** Delete most inline comments you added (verify with `git diff`). Only retain comments if the code would be genuinely misinterpreted by maintainers without them, even after careful study.
 3.  **Verify Headers:** Double-check that no copyright or license headers were accidentally added. Remove if present.
-4.  **Run Pre-commit:** If available, try running pre-commit checks again.
 5.  **Summarize Work:**
     *   **Small Tasks:** Describe your changes in brief bullet points.
     *   **Complex Tasks:** Provide a concise high-level description, use bullet points for key changes, and include details relevant for a code reviewer.
