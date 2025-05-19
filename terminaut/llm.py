@@ -4,30 +4,66 @@ import re
 import uuid
 import openai
 
-from .output import output
-from .tools import bash_function
+from terminaut.output import output
+from terminaut.tools import bash_function
+from typing import Optional
+from terminaut.rules import RuleManager
 
 HISTORY_LIMIT = max(3, int(os.environ.get("HISTORY_LIMIT", "20")))
 
 class LLM:
-    def __init__(self, model, base_url=None, system_prompt=None):
+    # Track manually invoked rules for this LLM instance
+    manual_rule_names = []
+    
+    def _determine_active_context_files(self, content_messages):
+        """
+        Extract file paths/names from the latest user message in content_messages (preferred),
+        or fallback to self.messages if not found.
+        Returns a list of strings.
+        """
+        import re
+        user_content = None
+        for msg in reversed(content_messages):
+            if msg.get("role") == "user" and "content" in msg:
+                user_content = msg["content"]
+                break
+        if not user_content:
+            return []
+        # Regex: match things like main.py, ./foo/bar.txt, foo-bar.js, etc.
+        matches = re.findall(r'([\.\/\w-]+\.\w+)', user_content)
+        return matches
+
+    def __init__(self, model, base_url=None, system_prompt=None, rule_manager: Optional[RuleManager] = None):
         if "OPENAI_API_KEY" not in os.environ:
             raise ValueError("OPENAI_API_KEY environment variable not found.")
         self.model = model
         self.messages = []
+        self.rule_manager = rule_manager
         # Use provided system prompt, or load from file, or fallback to default
         if system_prompt is not None:
-            self.system_prompt = system_prompt
+            self.base_system_prompt = system_prompt
         else:
             local_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "system-prompt.md")
             local_path = os.path.abspath(local_path)
 
             try:
                 with open(local_path, "r", encoding="utf-8") as f:
-                    self.system_prompt = f.read()
+                    self.base_system_prompt = f.read()
             except Exception as e:
                 output("error", f"Failed to read system prompt: {e}")
-                self.system_prompt = "You are a helpful AI assistant."
+                self.base_system_prompt = "You are a helpful AI assistant."
+        # Precompute agent/manual rules info section (for manual invocation help)
+        self.agent_rules_info_section = ""
+        if self.rule_manager is not None:
+            agent_rules = self.rule_manager.get_agent_rules_info()
+            if agent_rules:
+                rules_section = (
+                    "\nThe following project rules are available and can be manually invoked using @RuleName:\n"
+                )
+                for name, desc in agent_rules:
+                    rules_section += f"- {name}: {desc}\n"
+                rules_section += "(Agent-requested rules will be considered by the assistant if relevant.)\n"
+                self.agent_rules_info_section = rules_section
         self.functions = [bash_function]
         self.client = openai.OpenAI(
             api_key=os.environ["OPENAI_API_KEY"],
@@ -35,15 +71,62 @@ class LLM:
         ) if base_url else openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     def __call__(self, content, stream=True):
+        # Debug: Print content to check if manual rule messages are included
+        print(f"DEBUG: LLM.__call__ received content: {content}")
+        
+        # IMPORTANT: Save the current content for context file extraction
+        # BEFORE extending self.messages (which will clear content)
+        current_content = content.copy() if content else []
+        
         # content is a list of messages (role/content dicts)
         self.messages.extend(content)
 
-        # --- Normalize self.messages: Ensure the system prompt is always the first message ---
         # Remove all existing system messages
         self.messages = [msg for msg in self.messages if msg.get("role") != "system"]
 
+        # --- Dynamically build the system prompt for this call ---
+        system_prompt = self.base_system_prompt.rstrip()
+
+        # Determine active context files from latest user message
+        active_context_files = []
+        if self.rule_manager is not None:
+            # Use the saved current_content to extract context files
+            active_context_files = self._determine_active_context_files(current_content)
+
+        print(f"active_context_files: {active_context_files}")
+        # Append applied rules to the system prompt
+        if self.rule_manager is not None:
+            # Get automatically applicable rules (ALWAYS and AUTO_ATTACHED)
+            applicable_rules = self.rule_manager.get_applicable_rules(active_context_files)
+            
+            # Add manually invoked rules if any
+            manually_invoked_rules = []
+            for rule_name in self.manual_rule_names:
+                for rule in self.rule_manager.rules:
+                    if rule.name == rule_name:
+                        manually_invoked_rules.append(rule)
+                        break
+            
+            # Combine auto and manually invoked rules, avoiding duplicates
+            all_rules = list(applicable_rules)
+            for rule in manually_invoked_rules:
+                if rule not in all_rules:
+                    all_rules.append(rule)
+                    
+            print(f"Applied Rules: {[rule.name for rule in all_rules]}")
+            
+            if all_rules:
+                for rule in all_rules:
+                    resolved_content = self.rule_manager.resolve_rule_content(rule)
+                    system_prompt += (
+                        f"\n\nApplied Project Rule: {rule.name}\n---\n{resolved_content}\n---"
+                    )
+            # Append agent/manual rules info section (if any)
+            if self.agent_rules_info_section:
+                system_prompt += "\n" + self.agent_rules_info_section
+
         # Prepend the system prompt as the first message
-        self.messages.insert(0, {"role": "system", "content": self.system_prompt})
+        self.messages.insert(0, {"role": "system", "content": system_prompt})
 
         # Assert that the first message is the system message
         assert self.messages[0].get("role") == "system", "The first message in self.messages must always have the role 'system'."
@@ -118,7 +201,7 @@ class LLM:
         # It starts with a system prompt and respects HISTORY_LIMIT.
         api_call_messages = self.messages
 
-        print(f"api_call_messages: {json.dumps(api_call_messages, indent=True)}")
+        # print(f"api_call_messages: {json.dumps(api_call_messages, indent=True)}")
 
         tools = [{"type": "function", "function": func} for func in self.functions]
 

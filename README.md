@@ -5,6 +5,10 @@
 
 Terminaut is a terminal-based, agentic assistant that brings the power of modern LLMs to your local workflow. While it excels as a coding assistant, Terminaut is much more than that. By customizing the system prompt, you can transform it into a versatile agent for system administration, data analysis, automation, or any task that can be accomplished with Bash commands. Terminaut adapts to your needs, making it the ultimate tool for your terminal.
 
+> ### 🆕 NEW: Cursor Rules Support
+>
+> Terminaut now supports **Cursor Rules** - a powerful way to define project-specific guidelines, templates, and conventions. Create `.mdc` files in a `.cursor/rules/` directory to apply rules automatically based on context or invoke them manually with `@RuleName`. [Learn more](CURSOR_RULES.md) about this feature!
+
 ---
 
 ## Features
@@ -58,6 +62,9 @@ These are just a few examples. With a custom system prompt, Terminaut can be tai
 
 - **Extensible Architecture**
   Modular Python package structure for easy extension and maintenance.
+
+- **Cursor Rules**
+  Define project-specific guidelines, boilerplate, and domain knowledge that are automatically applied based on context or manual invocation. Inspired by Cursor's rules system.
 
 ---
 
@@ -167,6 +174,7 @@ tt
   If a file path is provided, the contents of the file will be used as the first user prompt.
 
 - **Type your requests at the prompt.**
+- **Invoke Cursor Rules with `@RuleName` syntax if needed.**
 - **Approve or deny shell commands as prompted.**
 - **Type `exit` or `quit` to leave.**
 
@@ -188,7 +196,8 @@ tt
 ## How It Works
 
 1. **Conversational Loop:**
-   - User enters a prompt.
+   - User enters a prompt (optionally invoking rules with `@RuleName`).
+   - Cursor Rules are applied based on context and manual invocations.
    - LLM responds, possibly with tool calls (e.g., shell commands).
    - Tool calls are parsed from both structured API responses and code/text blocks.
    - User is prompted to approve shell commands.
@@ -218,9 +227,11 @@ terminaut/
   tools.py       # Tool definitions and execution logic
   input.py       # User input handling
   output.py      # Output handler
+  rules.py       # Cursor Rules handling
 apply_patch      # Standalone patch application script
 main.py          # Entrypoint (calls terminaut.cli.main)
 system-prompt.md # System prompt for the agent
+.cursor/rules/   # Directory for project-specific rules
 ```
 
 - **Easily extendable:** Add new tools by defining them in `tools.py` and registering with the LLM.
@@ -295,6 +306,27 @@ EXIT CODE: 0
 [agent] The Python files in this directory are: main.py, cli.py, llm.py, tools.py, input.py, output.py.
 ```
 
+### Using Cursor Rules
+```
+$ tt --first-prompt "@python Write a hello world program"
+[info] === Terminaut: LLM Agent Loop with OpenAI Chat Completions API and Bash Tool ===
+[info] Type 'exit' to end the conversation.
+[info] Loaded 1 project rule(s) from .cursor/rules directories.
+[agent] Applied Rules: ['python']
+[agent] Here's a simple "Hello World" program in Python:
+
+```python
+# THIS IS A PYTHON SNIPPET WRITTEN BY TERMINAUT
+def main():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    main()
+```
+
+This program defines a main function that prints "Hello, World!" to the console, and then calls that function when the script is run directly.
+```
+
 ---
 
 ## Troubleshooting & FAQ
@@ -313,6 +345,9 @@ EXIT CODE: 0
 
 - **Q: How do I change the history limit?**
   A: Set the `HISTORY_LIMIT` environment variable.
+
+- **Q: How do I create and use Cursor Rules?**
+  A: Create `.mdc` files in a `.cursor/rules/` directory. ALWAYS rules are applied to every conversation, AUTO_ATTACHED rules are applied when matching files are mentioned in your input, and you can manually invoke any non-ALWAYS rule with `@RuleName` syntax.
 
 ---
 

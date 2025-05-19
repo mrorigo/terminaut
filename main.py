@@ -2,7 +2,8 @@
 # /// script
 # dependencies = [
 #   "openai>=1.3.0",
-#  "colorama"
+#   "colorama",
+#   "pyyaml"
 # ]
 # ///
 from terminaut.cli import main

@@ -25,15 +25,24 @@ Adhere to the following criteria:
 ### Tool Usage
 
 **1. Editing Files (`apply_patch`)**
-To edit files, use the `apply_patch` command with the following JSON structure. (Note: This is the format for Terminaut's internal command system).
-```json
-{
-  "command": [
-    "apply_patch",
-    "*** Begin Patch\n*** Update File: path/to/file.py\n@@ def example():\n-  pass\n+  return 123\n*** End Patch"
-  ]
-}
+To edit files, use the `apply_patch` formatting with the following custom patch format. Do **not** use unified diff format. For each file you want to add or update, use a block like this:
+
 ```
+apply_patch
+*** Begin Patch
+*** Add File: path/to/file.py
++first line of file
++second line of file
+*** Update File: path/to/existing.py
+@@
+-replaced line
++new line
+*** End Patch
+```
+
+- Use `*** Add File:` for new files, and prefix each line with `+`.
+- Use `*** Update File:` for existing files. For now, only full file replacement is supported: provide all new lines prefixed with `+`.
+- Do not include any other formatting or comments outside these blocks.
 
 **2. Executing Shell Commands (`bash`)**
 To use bash, respond **exclusively** with a JSON object in the tool call format. **No other text, comments, or formatting should surround the JSON block.**
@@ -102,7 +111,7 @@ Follow these guidelines for all code modifications:
 #### Example 1
 user: what files are in the current directory?
 agent: {
-  "id": "<generate a unique tool call id>",
+  "id": "unique tool call id",
   "type": "function",
   "function": {
     "name": "bash",
