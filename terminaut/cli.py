@@ -2,17 +2,20 @@ import os
 from .llm import LLM
 from .tools import handle_tool_call
 from .input import user_input
-from .output import output
+from .output import output, TAG_STYLES, Style
 
 def loop(llm, initial_prompt=None):
     msg = [{"role": "user", "content": initial_prompt}] if initial_prompt else user_input()
     while True:
-        output_text, tool_calls = llm(msg)
+        # Print agent marker before streaming begins
+        print(f"{TAG_STYLES['agent'][0]}{TAG_STYLES['agent'][1]}[agent]{Style.RESET_ALL} ", end="", flush=True)
         
-        # Output any message from the assistant when present
-        if output_text.strip():
-            output("agent", output_text)
-            
+        # Get streaming response from LLM
+        output_text, tool_calls = llm(msg, stream=True)
+        
+        # Ensure a new line after streaming content
+        print()
+        
         # Process tool calls regardless of whether there's output text
         # If there are tool calls, handle them and immediately call LLM again with the tool result(s)
         while tool_calls:
@@ -29,12 +32,17 @@ def loop(llm, initial_prompt=None):
                     output("error", "No valid tool responses, stopping tool call loop")
                     tool_calls = []
                     continue
-                    
-                output_text, new_tool_calls = llm(msg)
-                tool_calls = new_tool_calls  # Update tool_calls for next loop iteration
                 
-                if output_text and output_text.strip():
-                    output("agent", output_text)
+                # Print agent marker before streaming begins
+                print(f"{TAG_STYLES['agent'][0]}{TAG_STYLES['agent'][1]}[agent]{Style.RESET_ALL} ", end="", flush=True)
+                
+                # Get streaming response for tool call result
+                output_text, new_tool_calls = llm(msg, stream=True)
+                
+                # Ensure a new line after streaming content
+                print()
+                
+                tool_calls = new_tool_calls  # Update tool_calls for next loop iteration
             except Exception as e:
                 output("error", f"Error in tool call loop: {str(e)}")
                 tool_calls = []  # Stop the loop on error
