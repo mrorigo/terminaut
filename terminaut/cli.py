@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List, Dict, Tuple
+from typing import List, Tuple
 from .llm import LLM
 from .tools import handle_tool_call
 from .input import user_input
@@ -10,23 +10,23 @@ from .rules import RuleManager, MdcParser
 def process_input_for_manual_rules(input_text: str, rule_manager: RuleManager) -> Tuple[List[str], str]:
     """
     Process user input for manual rule invocations (@RuleName).
-    
+
     Args:
         input_text: The user's input text
         rule_manager: The RuleManager instance
-        
+
     Returns:
         Tuple of (manual_rule_names, processed_text)
     """
     if not rule_manager:
         return [], input_text
-    
+
     processed_text = input_text
     manual_rule_names = []
-    
+
     # Find all @RuleName mentions
     rule_mentions = re.findall(r"@([\w-]+)", input_text)
-    
+
     # Process each mentioned rule
     for rule_name in rule_mentions:
         rule = rule_manager.get_manual_rule(rule_name)
@@ -36,7 +36,7 @@ def process_input_for_manual_rules(input_text: str, rule_manager: RuleManager) -
         else:
             # Rule not found, log a warning
             output("warning", f"Manual rule @{rule_name} not found.")
-    
+
     return manual_rule_names, processed_text
 
 def loop(llm, initial_prompt=None, initial_messages=None):
@@ -54,7 +54,7 @@ def loop(llm, initial_prompt=None, initial_messages=None):
             # Update user message with processed text
             user_msg[0]["content"] = processed_text
         msg = user_msg
-    
+
     while True:
         # Print agent marker before streaming begins
         print(f"{TAG_STYLES['agent'][0]}{TAG_STYLES['agent'][1]}[agent]{Style.RESET_ALL} ", end="", flush=True)

@@ -9,10 +9,9 @@
 import unittest
 import tempfile
 import os
-import json
 from unittest.mock import patch, MagicMock
 
-from rules import RuleType, ProjectRule, RuleManager
+from rules import RuleType, ProjectRule
 from llm import LLM
 
 class TestLLMRuleIntegration(unittest.TestCase):

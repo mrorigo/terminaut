@@ -73,7 +73,7 @@ class MdcParser:
                 output("error", f"YAML parsing error in {file_path}: {e}")
                 # Proceed with defaults
         else:
-            print(f"WARNING: frontmatter header not found in {file_path}")
+            output("warning", f"Frontmatter header not found in {file_path}")
 
 
         # Infer rule_type
@@ -126,7 +126,12 @@ class RuleManager:
             if rule is not None:
                 self.rules.append(rule)
                 loaded_count += 1
-        output("info", f"Loaded {loaded_count} project rule(s) from .cursor/rules directories.")
+        if loaded_count > 0:
+            output("info", f"Loaded {loaded_count} project rule(s) from .cursor/rules directories:")
+            for rule in self.rules:
+                output("info_detail", f"- {rule.description or rule.name} ({rule.rule_type})")
+        else:
+            output("info", "No rules loaded from .cursor/rules directory")
 
     def resolve_rule_content(self, rule: ProjectRule) -> str:
         resolved_content = rule.raw_content
@@ -176,11 +181,8 @@ class RuleManager:
         Any rule that is not ALWAYS can be manually invoked.
         """
         for rule in self.rules:
-            print(f"DEBUG: Examining rule: name='{rule.name}', type={rule.rule_type}, matches name={rule.name == name}")
             if rule.name == name and rule.rule_type != RuleType.ALWAYS:
-                print(f"DEBUG: Found manually invokable rule: {rule.name}")
                 return rule
-        print(f"DEBUG: No manually invokable rule named '{name}' found")
         return None
 
     def get_applicable_rules(self, active_context_files: list[str]) -> list[ProjectRule]:

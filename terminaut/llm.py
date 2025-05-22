@@ -14,11 +14,10 @@ HISTORY_LIMIT = max(3, int(os.environ.get("HISTORY_LIMIT", "20")))
 class LLM:
     # Track manually invoked rules for this LLM instance
     manual_rule_names = []
-    
+
     def _determine_active_context_files(self, content_messages):
         """
-        Extract file paths/names from the latest user message in content_messages (preferred),
-        or fallback to self.messages if not found.
+        Extract file paths/names from the latest user message in content_messages
         Returns a list of strings.
         """
         import re
@@ -71,13 +70,10 @@ class LLM:
         ) if base_url else openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
     def __call__(self, content, stream=True):
-        # Debug: Print content to check if manual rule messages are included
-        print(f"DEBUG: LLM.__call__ received content: {content}")
-        
         # IMPORTANT: Save the current content for context file extraction
         # BEFORE extending self.messages (which will clear content)
         current_content = content.copy() if content else []
-        
+
         # content is a list of messages (role/content dicts)
         self.messages.extend(content)
 
@@ -98,23 +94,23 @@ class LLM:
         if self.rule_manager is not None:
             # Get automatically applicable rules (ALWAYS and AUTO_ATTACHED)
             applicable_rules = self.rule_manager.get_applicable_rules(active_context_files)
-            
+
             # Add manually invoked rules if any
             manually_invoked_rules = []
-            for rule_name in self.manual_rule_names:
-                for rule in self.rule_manager.rules:
-                    if rule.name == rule_name:
+            if self.rule_manager: # Check if rule_manager is available
+                for rule_name in self.manual_rule_names:
+                    rule = self.rule_manager.get_manual_rule(rule_name)
+                    if rule:
                         manually_invoked_rules.append(rule)
-                        break
-            
+
             # Combine auto and manually invoked rules, avoiding duplicates
             all_rules = list(applicable_rules)
             for rule in manually_invoked_rules:
                 if rule not in all_rules:
                     all_rules.append(rule)
-                    
+
             print(f"Applied Rules: {[rule.name for rule in all_rules]}")
-            
+
             if all_rules:
                 for rule in all_rules:
                     resolved_content = self.rule_manager.resolve_rule_content(rule)
