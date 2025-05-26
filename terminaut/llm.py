@@ -314,7 +314,7 @@ class LLM:
         # a block starting with "*** Begin Patch" and ending with "*** End Patch".
         # It captures the block from "*** Begin Patch" to "*** End Patch" (inclusive).
         apply_patch_pattern = re.compile(
-            r"^apply_patch\r?\n(\*\*\* Begin Patch\r?\n[\s\S]*?\r?\n\*\*\* End Patch)$",
+            r"^apply_patch\r?\n(\*\*\* Begin Patch\r?\n[\s\S]*?\r?\n\*\*\* End Patch)(?:\r?\n|$)",
             re.MULTILINE
         )
 
