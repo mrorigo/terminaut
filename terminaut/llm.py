@@ -579,5 +579,7 @@ class LLM:
 
         if "content" in assistant_message_to_log or "tool_calls" in assistant_message_to_log:
             self.messages.append(assistant_message_to_log)
+        else:
+            output("warning", "LLM response had no content or tool_calls!")
 
         return output_text, processed_tool_calls

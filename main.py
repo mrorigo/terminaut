@@ -3,7 +3,8 @@
 # dependencies = [
 #   "openai>=1.3.0",
 #   "colorama",
-#   "pyyaml"
+#   "pyyaml",
+#   "prompt_toolkit"
 # ]
 # ///
 from terminaut.cli import main
