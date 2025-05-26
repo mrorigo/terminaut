@@ -1,19 +1,31 @@
-from .output import output
+from .output import output, TAG_STYLES
+from prompt_toolkit import PromptSession
+from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.key_binding import KeyBindings
 
-from .output import TAG_STYLES
-
-def user_input():
-    # Use the same emoji and color as the output handler for user_input
-    style, emoji = TAG_STYLES.get("user_input", ("", ""))
+def user_multiline_input(prompt_html):
+    session = PromptSession()
     try:
-        # Print the prompt with emoji and tag, and flush to ensure it appears before input
-        prompt = f"{style}{emoji}[user]: {''}\033[0m"
-        x = input(prompt)
+        text = session.prompt(
+            HTML(prompt_html),
+            multiline=True,
+            bottom_toolbar=HTML(
+                '<style fg="ansiyellow">[Type message. Enter = newline, Esc+Enter or F2 = submit]</style>'
+            )
+        )
+        return text
     except KeyboardInterrupt:
         print()
         output("info", "Exiting agent loop. Goodbye!")
         raise SystemExit(0)
-    if x.lower() in ["exit", "quit", "/exit", "/quit"]:
+
+def user_input():
+    # Map colorama style to prompt_toolkit HTML style
+    color = "ansiblue"
+    emoji = TAG_STYLES.get("user_input", ("", "👤"))[1]
+    prompt_html = f'<b fg="{color}">{emoji}[user]: </b>'
+    x = user_multiline_input(prompt_html)
+    if x.strip().lower() in ["exit", "quit", "/exit", "/quit"]:
         output("info", "Exiting agent loop. Goodbye!")
         raise SystemExit(0)
     return [{"role": "user", "content": x}]
