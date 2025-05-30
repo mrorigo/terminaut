@@ -3,7 +3,7 @@ import tempfile
 import os
 from unittest.mock import patch
 
-from rules import MdcParser, ProjectRule, RuleType, RuleManager
+from terminaut.rules import MdcParser, RuleType, ProjectRule
 
 class TestMdcParser(unittest.TestCase):
     def setUp(self):

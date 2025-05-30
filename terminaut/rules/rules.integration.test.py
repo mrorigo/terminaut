@@ -11,7 +11,7 @@ import tempfile
 import os
 from unittest.mock import patch, MagicMock
 
-from rules import RuleType, ProjectRule
+from terminaut.rules.types import RuleType, ProjectRule
 from llm import LLM
 
 class TestLLMRuleIntegration(unittest.TestCase):
