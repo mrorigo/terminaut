@@ -1,5 +1,5 @@
-
 import re
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 from terminaut.rules.manager import RuleManager
 
@@ -44,12 +44,37 @@ class SystemPromptConstructor:
          matches = re.findall(r'\b([\.\/\w-]+\.\w+)\b', user_content)
          return matches
 
+     def _expand_template_variables(self, text: str) -> str:
+         """
+         Expand template variables in the system prompt.
+         Supported variables: {{date}}, {{time}}, {{weekday}}
+         """
+         now = datetime.now()
+
+         # Define template variables
+         template_vars = {
+             'date': now.strftime('%Y-%m-%d'),
+             'time': now.strftime('%H:%M:%S'),
+             'weekday': now.strftime('%A')
+         }
+
+         # Replace template variables using regex
+         def replace_var(match):
+             var_name = match.group(1)
+             return template_vars.get(var_name, match.group(0))  # Return original if not found
+
+         # Pattern matches {{variable_name}}
+         expanded_text = re.sub(r'\{\{(\w+)\}\}', replace_var, text)
+         return expanded_text
+
      def build_system_prompt(self, current_input_messages: List[Dict[str, Any]], manual_rule_names: List[str]) -> str:
          """
          Builds the full system prompt for the current API call.
          Includes base prompt, applicable rules, and agent rules info.
          """
-         system_prompt_parts = [self._base_system_prompt.rstrip()]
+         # Expand template variables in the base prompt first
+         base_prompt_expanded = self._expand_template_variables(self._base_system_prompt.rstrip())
+         system_prompt_parts = [base_prompt_expanded]
 
          if self._rule_manager:
              # Determine active context files from the *current input* messages
@@ -83,6 +108,8 @@ class SystemPromptConstructor:
              if all_rules:
                  for rule in all_rules:
                      resolved_content = self._rule_manager.resolve_rule_content(rule)
+                     # Also expand template variables in rule content
+                     resolved_content = self._expand_template_variables(resolved_content)
                      system_prompt_parts.append(
                          f"\n\nApplied Project Rule: {rule.name}\n---\n{resolved_content}\n---"
                      )

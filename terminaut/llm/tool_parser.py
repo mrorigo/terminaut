@@ -1,80 +1,109 @@
 from typing import List, Dict, Any
 import re
+import json
 
 class ToolCallParser:
     """Parses tool calls from text content (custom formats and JSON)."""
 
     def _extract_json_tool_calls(self, text: str) -> List[Dict[str, Any]]:
-        """Helper: parse JSON tool calls from text/code block"""
+        """Helper: parse JSON tool calls from text/code block and XML tool_call tags"""
         tool_calls = []
+
+        # First, extract XML-style <tool_call> blocks
+        xml_tool_call_pattern = re.compile(
+            r"<tool_call>\s*([\s\S]*?)\s*</tool_call>", re.IGNORECASE
+        )
+        xml_matches = xml_tool_call_pattern.findall(text)
+
+        # Remove XML tool_call blocks from text to avoid double-processing
+        text_without_xml = xml_tool_call_pattern.sub("", text)
+
+        # Process XML tool calls
+        for xml_content in xml_matches:
+            xml_content = xml_content.strip()
+            if xml_content:
+                tool_calls.extend(self._parse_json_content(xml_content))
+
+        # Then process remaining text for code blocks and inline JSON
         # Match any code block guard (json, python, tool_call, etc.) or plain ```
-        # Also handle inline JSON that might not be in a code block
         code_block_pattern = re.compile(
             r"```(?:[a-zA-Z0-9_]+)?\s*([\s\S]+?)\s*```", re.IGNORECASE
         )
-        matches = code_block_pattern.findall(text)
-        # If no code blocks, consider the whole text a candidate for direct JSON parsing
-        candidates = matches if matches else ([text] if text.strip().startswith(("{", "[")) else [])
+        code_block_matches = code_block_pattern.findall(text_without_xml)
+
+        # If no code blocks, consider the whole remaining text a candidate for direct JSON parsing
+        candidates = code_block_matches if code_block_matches else (
+            [text_without_xml] if text_without_xml.strip().startswith(("{", "[")) else []
+        )
 
         for candidate_text in candidates:
-            candidate_text = candidate_text.strip()
-            # Sometimes the code block may contain extra markdown or comments, try to extract JSON object
-            # Remove leading/trailing markdown comments or lines
-            candidate_text = re.sub(r"^<!--.*?-->\s*", "", candidate_text, flags=re.DOTALL)
-            candidate_text = re.sub(r"\s*<!--.*?-->$", "", candidate_text, flags=re.DOTALL)
-            try:
-                obj = json.loads(candidate_text)
-            except json.JSONDecodeError:
-                # Try to extract the first JSON object in the candidate if direct parse fails
-                # Use a more robust pattern to find potential JSON objects/arrays
-                json_obj_pattern = re.compile(r'(\{.*?\}|\[.*?\])', re.DOTALL)
-                json_match = json_obj_pattern.search(candidate_text)
-                if json_match:
+            tool_calls.extend(self._parse_json_content(candidate_text))
+
+        return tool_calls
+
+    def _parse_json_content(self, content: str) -> List[Dict[str, Any]]:
+        """Helper: parse JSON content and extract tool calls"""
+        tool_calls = []
+        content = content.strip()
+
+        # Remove leading/trailing markdown comments or lines
+        content = re.sub(r"^<!--.*?-->\s*", "", content, flags=re.DOTALL)
+        content = re.sub(r"\s*<!--.*?-->$", "", content, flags=re.DOTALL)
+
+        try:
+            obj = json.loads(content)
+        except json.JSONDecodeError:
+            # Try to extract the first JSON object in the content if direct parse fails
+            # Use a more robust pattern to find potential JSON objects/arrays
+            json_obj_pattern = re.compile(r'(\{.*?\}|\[.*?\])', re.DOTALL)
+            json_match = json_obj_pattern.search(content)
+            if json_match:
+                try:
+                    obj = json.loads(json_match.group(1))
+                except json.JSONDecodeError:
+                    return tool_calls  # Return empty list if parsing fails
+            else:
+                return tool_calls  # No JSON object found
+
+        objs_to_process = obj if isinstance(obj, list) else [obj]
+
+        for item in objs_to_process:
+            # Accept OpenAI tool_call format within text
+            if (isinstance(item, dict) and "function" in item and
+                isinstance(item["function"], dict) and "name" in item["function"] and
+                "arguments" in item["function"]):
+                args = item["function"]["arguments"]
+                # Arguments can be a string (needs parsing) or already a dict/list
+                if isinstance(args, str):
                     try:
-                        obj = json.loads(json_match.group(1)) # Use group(1) for the captured content
+                        args = json.loads(args)
                     except json.JSONDecodeError:
-                        continue # Not a valid JSON object
-                else:
-                    continue # No JSON object found
+                        # If string arguments fail to parse as JSON, pass as raw string
+                        pass
 
-            objs_to_process = obj if isinstance(obj, list) else [obj]
-            for item in objs_to_process:
-                # Accept OpenAI tool_call format within text
-                if (isinstance(item, dict) and "function" in item and
-                    isinstance(item["function"], dict) and "name" in item["function"] and
-                    "arguments" in item["function"]):
-                    args = item["function"]["arguments"]
-                    # Arguments can be a string (needs parsing) or already a dict/list
-                    if isinstance(args, str):
-                        try:
-                            args = json.loads(args)
-                        except json.JSONDecodeError:
-                            # If string arguments fail to parse as JSON, pass as raw string under a specific key
-                            # For bash, command is string, but the tool expects {"command": "..."}.
-                            # If the model puts the command string directly in 'arguments', this will wrap it.
-                            # If the tool expects a string, it should be handled in handle_tool_call.
-                            pass # Keep as string if JSON decode fails here
+                # Ensure arguments is a dict for consistent tool handling
+                if not isinstance(args, dict):
+                    from terminaut.output import output
+                    output("warning", f"Tool call arguments for {item['function']['name']} not dict, was {type(args)}. Wrapping.")
+                    args = {"raw_value": args}
 
-                    # Ensure arguments is a dict for consistent tool handling
-                    if not isinstance(args, dict):
-                         output("warning", f"Tool call arguments for {item['function']['name']} not dict, was {type(args)}. Wrapping.")
-                         args = {"raw_value": args} # Wrap non-dict args
+                tool_calls.append({"name": item["function"]["name"], "arguments": args})
 
-                    tool_calls.append({"name": item["function"]["name"], "arguments": args})
-                # Accept simple {"name": ..., "arguments": ...} format within text
-                elif isinstance(item, dict) and "name" in item and "arguments" in item:
-                    args = item["arguments"]
-                    if isinstance(args, str):
-                        try:
-                            args = json.loads(args)
-                        except json.JSONDecodeError:
-                            pass
+            # Accept simple {"name": ..., "arguments": ...} format within text
+            elif isinstance(item, dict) and "name" in item and "arguments" in item:
+                args = item["arguments"]
+                if isinstance(args, str):
+                    try:
+                        args = json.loads(args)
+                    except json.JSONDecodeError:
+                        pass
 
-                    if not isinstance(args, dict):
-                         output("warning", f"Tool call arguments for {item['name']} not dict, was {type(args)}. Wrapping.")
-                         args = {"raw_value": args} # Wrap non-dict args
+                if not isinstance(args, dict):
+                    from terminaut.output import output
+                    output("warning", f"Tool call arguments for {item['name']} not dict, was {type(args)}. Wrapping.")
+                    args = {"raw_value": args}
 
-                    tool_calls.append({"name": item["name"], "arguments": args})
+                tool_calls.append({"name": item["name"], "arguments": args})
 
         return tool_calls
 
