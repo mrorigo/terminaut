@@ -10,6 +10,8 @@ from .history import MessageHistory
 
 from terminaut.output import output
 from terminaut.tools import bash_function
+from terminaut.tools.apply_patch import apply_patch_function
+
 from typing import Optional, List, Dict, Any, Tuple
 
 # Constants
@@ -86,7 +88,7 @@ class LLM:
         self.prompt_constructor = SystemPromptConstructor(base_system_prompt_content, self.rule_manager)
 
         # Hardcoded tools for now
-        self.available_functions = [bash_function]
+        self.available_functions = [bash_function, apply_patch_function]
         self.api_caller = OpenAICaller(
             client=openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"], base_url=base_url) if base_url else openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"]),
             model=self.model,
@@ -143,7 +145,10 @@ class LLM:
 
             if stream:
                 current_tool_call_chunks: Dict[int, Dict[str, Any]] = {} # For assembling tool_calls from stream chunks
+                chunk_count = 0
                 for chunk in api_response: # api_response is the stream iterator
+                    chunk_count += 1
+
                     if not chunk.choices:
                         continue
 

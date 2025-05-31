@@ -118,9 +118,6 @@ class ToolCallParser:
         current_pos = 0
 
         # Regex for the custom apply_patch format (custom patch block)
-        # This regex looks for "apply_patch" on a line, followed by
-        # a block starting with "*** Begin Patch" and ending with "*** End Patch".
-        # It captures the block from "*** Begin Patch" to "*** End Patch" (inclusive).
         apply_patch_pattern = re.compile(
             r"^apply_patch\r?\n(\*\*\* Begin Patch\r?\n[\s\S]*?\r?\n\*\*\* End Patch)(?:\r?\n|$)",
             re.MULTILINE
@@ -131,17 +128,12 @@ class ToolCallParser:
             if match.start() > current_pos:
                 remaining_text_segments.append(text[current_pos:match.start()])
 
-            # Process the apply_patch block
-            patch_block = match.group(1)
-            # No validation needed; just pass the block as-is (including markers)
-            # Need to escape single quotes for the bash command echo ''
-            escaped_patch_content = patch_block.replace("'", "'\\''")
-            command_str = f"echo '{escaped_patch_content}' | apply_patch"
+            # Process the apply_patch block as native apply_patch tool call
+            patch_content = match.group(1)
 
-            # The arguments for the bash tool must be a dict with a "command" key
             all_tool_calls.append({
-                "name": "bash",
-                "arguments": {"command": command_str}
+                "name": "apply_patch",
+                "arguments": {"patch_content": patch_content}
             })
 
             current_pos = match.end()
